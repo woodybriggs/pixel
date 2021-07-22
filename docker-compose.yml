@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  nginx:
+    image: nginx
+    restart: unless-stopped
+    volumes: 
+      - ./nginx/www/html:/usr/share/nginx/html
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 8080:80
+    links:
+      - "fluentd"
+  fluentd:
+    build: ./fluentd
+    links:
+      - "mongo"
+      - "broker"
+    volumes: 
+      - ./fluentd/conf:/fluentd/etc
+      - ./fluentd/out:/var/log/fluent
+    ports:
+      - 5140:5140
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: nginx
+      MONGO_INITDB_USERNAME: nginx
+      MONGO_INITDB_PASSWORD: nginx
+      PUID: 1000
+      PGID: 1000
+  broker:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    
